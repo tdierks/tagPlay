@@ -66,7 +66,7 @@ class SoundBridge(object):
   def sendCommand(self, command, args):
     if DEBUG:
       print >>sys.stderr, ">>", command, " ", " ".join([str(a) for a in args])
-    print >>self.__conn, command, " ", " ".join(args)
+    print >>self.__conn, command, " ", " ".join([str(a) for a in args])
     self.__conn.flush()
 
   def readListResponse(self, command, count):
@@ -159,13 +159,21 @@ class SoundBridge(object):
   def listSongs(self):
     return self.doCommand('ListSongs')
   
-  def albumSongs(self, album, artist=None, server=None):
+  def matchingSongs(self, album=None, artist=None, server=None):
     if server:
       connectToServer(server)
     if artist:
       self.setBrowseFilterArtist(artist)
-    self.setBrowseFilterAlbum(album)
+    if album:
+      self.setBrowseFilterAlbum(album)
     return self.listSongs()
+
+  def singleSong(self, song, album=None, artist=None, server=None):
+    songs = self.matchingSongs(album, artist, server)
+    try:
+      return songs.index(song)
+    except ValueError:
+      raise Error("Song %s not found" % song)
   
   def queueAndPlay(self, i = 0):
     self.doCommand('QueueAndPlay', i)
@@ -176,14 +184,13 @@ class SoundBridge(object):
   def playPreset(self, preset):
     return self.doCommand('PlayPreset', preset)
   
-  def play(self, track):
-    pass
-  
+  def stop(self):
+    return self.doCommand('Stop')
+    
 if __name__ == "__main__":
   c = SoundBridge()
   c.connect("172.16.0.54")
   print "Connected to: ", c.getActiveServer()
   c.connectToServer("iMac iTunes")
-#   s = c.albumSongs("Elephant", "The White Stripes")
-#   c.queueAndPlay()
-  c.playPreset('A1')
+  c.queueAndPlay(c.singleSong("Purple People Eater", "Dr. Demento 20th Anniversary Collection - The Greatest Novelty Records Of All Time Disc 2", "Sheb Wooley"))
+  
